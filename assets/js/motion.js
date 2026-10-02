@@ -1,5 +1,6 @@
 /* P6 teaser, motion layer: smooth scroll, intro, scroll choreography, map tour.
-   Needs GSAP 3 with ScrollTrigger, SplitText, DrawSVGPlugin, MotionPathPlugin and Lenis (all in assets/vendor/).
+   Needs GSAP 3 with ScrollTrigger, SplitText, DrawSVGPlugin and MotionPathPlugin (all in assets/vendor/).
+   Scrolling stays native on purpose: it runs at the screen's own refresh rate (120 Hz on ProMotion), a JS scroller does not.
    Runs only when motion-boot.js set html.motion. Loads before teaser.js because it takes over the .reveal elements.
    Copy is never changed: text is only split into lines or letters for animation and re-split after a language switch. */
 (function () {
@@ -22,15 +23,18 @@
   var EASE = 'expo.out';
   var NS = 'http://www.w3.org/2000/svg';
 
-  /* --- smooth scroll ------------------------------------------------------------------- */
+  /* --- in-page links: native smooth scroll with the nav offset ------------------------- */
   var navOffset = function () { return (parseFloat(getComputedStyle(root).getPropertyValue('--nav-h')) || 76) + 8; };
-  var lenis = null;
-  if (window.Lenis) {
-    lenis = new Lenis({ duration: 1.15, anchors: { offset: -navOffset() }, autoRaf: false });
-    lenis.on('scroll', ScrollTrigger.update);
-    gsap.ticker.add(function (t) { lenis.raf(t * 1000); });
-    gsap.ticker.lagSmoothing(0);
-  }
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href^="#"]:not(.skip-link)');
+    if (!a || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey) return;
+    var id = a.getAttribute('href').slice(1), t = id ? document.getElementById(id) : null;
+    if (!t) return;
+    e.preventDefault();
+    window.scrollTo({ top: t.getBoundingClientRect().top + window.scrollY - (id === 'top' ? 0 : navOffset()), behavior: 'smooth' });
+    if (history.pushState) history.pushState(null, '', '#' + id);
+  });
+  gsap.ticker.lagSmoothing(0);
 
   /* --- take over the reveal system (teaser.js finds none left) ------------------------ */
   $$('.reveal').forEach(function (el) { el.classList.remove('reveal'); });
@@ -130,7 +134,7 @@
     var paths = $$('path', mark);
     el.style.animation = 'none';
     gsap.set(el, { clipPath: 'inset(0% 0% 0% 0%)' });
-    if (lenis) lenis.stop();
+    root.classList.add('m-lock');
 
     var ready = Promise.race([
       heroImg && heroImg.decode ? heroImg.decode().catch(function () {}) : Promise.resolve(),
@@ -148,7 +152,7 @@
         onComplete: function () {
           el.remove();
           root.classList.remove('intro');
-          if (lenis) lenis.start();
+          root.classList.remove('m-lock');
           try { sessionStorage.setItem('p6-intro', '1'); } catch (e) { /* fine */ }
         }
       })
@@ -159,10 +163,14 @@
     }
   }
 
-  gsap.set('.hero__media', { '--dim': 0 });
+  var dim = document.createElement('div');
+  dim.className = 'hero__dim';
+  dim.setAttribute('aria-hidden', 'true');
+  $('.hero__media').appendChild(dim);
   /* hero leaves: image sinks slower than the page, darkens, copy lifts away */
   gsap.timeline({ scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: true } })
-    .to('.hero__media', { yPercent: 26, '--dim': 0.6, ease: 'none' }, 0)
+    .to('.hero__media', { yPercent: 26, ease: 'none' }, 0)
+    .to(dim, { opacity: 0.6, ease: 'none' }, 0)
     .to(heroPic, { scale: 1.1, ease: 'none' }, 0)
     .to('.hero__copy', { yPercent: -16, opacity: 0, ease: 'power1.in' }, 0)
     .to('.hero__facts', { yPercent: -34, opacity: 0, ease: 'power1.in' }, 0);
@@ -408,15 +416,6 @@
     var card = $('.reg__card', reg);
     if (card) block(card, function (tl) { tl.from(card, { opacity: 0, y: 70, duration: 1.4 }); }, 'top 90%');
   }
-
-  /* --- ink sections open from a card to full width (desktop) ------------------------------ */
-  gsap.matchMedia().add('(min-width: 1000px)', function () {
-    $$('#lokalita, #registracia').forEach(function (s) {
-      gsap.fromTo(s, { clipPath: 'inset(0% 3.5% 0% 3.5% round 28px)' },
-        { clipPath: 'inset(0% 0% 0% 0% round 0px)', ease: 'none', scrollTrigger: { trigger: s, start: 'top bottom', end: 'top 25%', scrub: true } });
-    });
-    return function () { $$('#lokalita, #registracia').forEach(function (s) { s.style.clipPath = ''; }); };
-  });
 
   /* --- footer --------------------------------------------------------------------------- */
   var foot = $('.foot__grid');

@@ -4,11 +4,9 @@
    has not asked for reduced motion. Without it the teaser renders exactly as before.
    =========================================================================== */
 
-/* --- smooth scroll (Lenis) ------------------------------------------------- */
+/* --- scrolling stays native (full refresh rate); motion.js smooths in-page links ---- */
 html.motion { scroll-behavior: auto; }
-html.lenis, html.lenis body { height: auto; }
-.lenis:not(.lenis-autoToggle).lenis-stopped { overflow: clip; }
-.lenis.lenis-smooth iframe { pointer-events: none; }
+html.m-lock { overflow: hidden; }
 
 /* --- intro ------------------------------------------------------------------ */
 div.intro { display: none; }
@@ -31,10 +29,11 @@ div.intro { display: none; }
 /* --- hero ------------------------------------------------------------------- */
 .motion .hero__poster { animation: none; }
 .motion .hero picture { position: absolute; inset: -2.5%; display: block; }
-.motion .hero__media::after { content: ""; position: absolute; inset: 0; background: var(--ink); opacity: var(--dim, 0); pointer-events: none; }
+.hero__dim { position: absolute; inset: 0; background: var(--ink); opacity: 0; pointer-events: none; will-change: opacity; }
+.motion .hero__media { will-change: transform; }
 .motion .hero__title .line { padding-top: .1em; margin-top: -.1em; }
 .motion .hero__title .line > span { animation: none; transform: translateY(115%); }
-.motion .hero__title .m-ch { display: inline-block; will-change: transform; }
+.motion .hero__title .m-ch { display: inline-block; }
 .motion .status, .motion .hero__sub, .motion .hero__actions { animation: none; opacity: 0; }
 .motion .hero__facts { animation: none; opacity: 1; }
 .motion .hero__facts li { opacity: 0; }
@@ -42,7 +41,6 @@ div.intro { display: none; }
 
 /* --- split text: masks get room for diacritics above and descenders below ---- */
 .m-line-mask { padding: .12em 0 .14em; margin: -.12em 0 -.14em; }
-.m-line { will-change: transform; }
 
 /* --- nav: scroll progress, hides on the way down ----------------------------- */
 .nav__progress { position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--copper-2); transform: scaleX(0); transform-origin: left; pointer-events: none; }
@@ -105,7 +103,7 @@ div.intro { display: none; }
   background:
     radial-gradient(38% 34% at 22% 30%, rgba(184, 115, 51, .22), transparent 70%),
     radial-gradient(30% 30% at 78% 72%, rgba(196, 171, 137, .14), transparent 70%);
-  animation: glow-drift 22s ease-in-out infinite alternate; }
+  animation: glow-drift 22s ease-in-out infinite alternate; will-change: transform; }
 @keyframes glow-drift { 0% { transform: translate3d(-4%, -2%, 0) rotate(0deg); } 100% { transform: translate3d(5%, 4%, 0) rotate(8deg); } }
 .reg__mark { position: absolute; right: -6vw; top: 6%; width: min(72vw, 1040px); height: auto; overflow: visible; pointer-events: none; z-index: 0; }
 .reg__mark path { fill: none; stroke: var(--sand-2); stroke-width: 1.4; opacity: .16; }
@@ -119,16 +117,3 @@ div.intro { display: none; }
 .m-cursor.is-link { opacity: .9; }
 .m-cursor.is-media span { transform: scale(2.4); }
 .m-cursor.is-field { opacity: 0; }
-
-/* --- film grain (mouse devices only, very light) ----------------------------- */
-@media (hover: hover) and (pointer: fine) {
-  .motion body::after {
-    content: ""; position: fixed; inset: -50%; z-index: 90; pointer-events: none; opacity: .05;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    animation: grain .9s steps(6) infinite;
-  }
-}
-@keyframes grain {
-  0% { transform: translate(0, 0); } 20% { transform: translate(-4%, 3%); } 40% { transform: translate(3%, -5%); }
-  60% { transform: translate(-6%, -2%); } 80% { transform: translate(5%, 4%); } 100% { transform: translate(0, 0); }
-}
